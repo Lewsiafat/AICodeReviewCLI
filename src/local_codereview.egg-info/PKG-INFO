@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: local-codereview
-Version: 0.1.0
-Summary: A local CLI tool for Git-based code reviews with LLM integration.
-Requires-Python: >=3.9
-Requires-Dist: questionary
-Requires-Dist: python-dotenv
-Requires-Dist: google-generativeai

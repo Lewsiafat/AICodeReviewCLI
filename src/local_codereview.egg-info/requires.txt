@@ -1,3 +1,0 @@
-questionary
-python-dotenv
-google-generativeai
