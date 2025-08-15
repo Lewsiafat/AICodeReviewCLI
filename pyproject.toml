@@ -6,7 +6,7 @@ requires-python = ">=3.9"
 dependencies = [
     "questionary",  # For interactive CLI prompts
     "python-dotenv",# For loading .env files
-    # "google-generativeai", # Example if using Google Gemini API
+    "google-generativeai", # For Google Gemini API
 ]
 
 [project.scripts]

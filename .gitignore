@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Results directory
+results/
+
+# uv lock file
+uv.lock
+
+# Python packaging build artifacts
+*.egg-info/
+build/
+dist/
