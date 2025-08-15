@@ -101,9 +101,12 @@ def main():
         if branch:
             print(f"Current branch is: {branch}")
             
-            use_commit_range = questionary.confirm("Do you want to specify a commit range?").ask()
-            
-            if use_commit_range:
+            review_mode = questionary.select(
+                "How would you like to review commits?",
+                choices=["Review a range of commits (cumulative diff)", "Review selected individual commits"]
+            ).ask()
+
+            if review_mode == "Review a range of commits (cumulative diff)":
                 recent_commits = git_utils.get_recent_commits(project_path)
                 if not recent_commits:
                     print("No recent commits found.")
@@ -119,45 +122,127 @@ def main():
                 from_commit = from_commit_str.split(' ')[0]
                 to_commit = to_commit_str.split(' ')[0]
 
-            else:
-                from_commit = "HEAD~1"
-                to_commit = "HEAD"
-
-            if from_commit == to_commit:
-                diff = git_utils.get_single_commit_changes(project_path, from_commit)
-            else:
-                diff = git_utils.get_commit_diff(project_path, from_commit, to_commit)
-            
-            if diff:
-                print("\n--- Diff ---")
-                print(diff)
-                print("--- End Diff ---\n")
-
-                # Read all markdown files from the prompts directory
-                script_dir = os.path.dirname(__file__)
-                tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
-                prompts_dir = os.path.join(tool_root_dir, "prompts")
+                if from_commit == to_commit:
+                    diff = git_utils.get_single_commit_changes(project_path, from_commit)
+                else:
+                    diff = git_utils.get_commit_diff(project_path, from_commit, to_commit)
                 
-                prompt_parts = []
-                try:
-                    for filename in os.listdir(prompts_dir):
-                        if filename.endswith(".md"):
-                            file_path = os.path.join(prompts_dir, filename)
-                            with open(file_path, "r") as f:
-                                prompt_parts.append(f.read())
-                except FileNotFoundError:
-                    print(f"Error: Could not find the prompts directory at {prompts_dir}")
-                    return
-                except Exception as e:
-                    print(f"Error reading prompt files: {e}")
-                    return
-                
-                prompt = "\n\n".join(prompt_parts)
-                if not prompt:
-                    print("Error: No prompt content found in the prompts directory.")
+                if diff:
+                    print("\n--- Diff ---")
+                    print(diff)
+                    print("--- End Diff ---\n")
+
+                    # Read all markdown files from the prompts directory
+                    script_dir = os.path.dirname(__file__)
+                    tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
+                    prompts_dir = os.path.join(tool_root_dir, "prompts")
+                    
+                    prompt_parts = []
+                    try:
+                        for filename in os.listdir(prompts_dir):
+                            if filename.endswith(".md"):
+                                file_path = os.path.join(prompts_dir, filename)
+                                with open(file_path, "r") as f:
+                                    prompt_parts.append(f.read())
+                    except FileNotFoundError:
+                        print(f"Error: Could not find the prompts directory at {prompts_dir}")
+                        return
+                    except Exception as e:
+                        print(f"Error reading prompt files: {e}")
+                        return
+                    
+                    prompt = "\n\n".join(prompt_parts)
+                    if not prompt:
+                        print("Error: No prompt content found in the prompts directory.")
+                        return
+
+                    review = llm_integration.get_code_review(diff, prompt, model_name)
+                    
+                    # --- Save review to file ---
+                    results_dir = os.path.join(tool_root_dir, "results")
+                    os.makedirs(results_dir, exist_ok=True)
+
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    sanitized_model_name = model_name.replace('/', '_') # Sanitize for filename
+                    
+                    serial = 1
+                    while True:
+                        filename = f"{timestamp}_{sanitized_model_name}_{serial:03d}.md"
+                        file_path = os.path.join(results_dir, filename)
+                        if not os.path.exists(file_path):
+                            break
+                        serial += 1
+                    
+                    try:
+                        with open(file_path, "w") as f:
+                            f.write(review)
+                        print(f"\n--- AI Review complete ---")
+                        print(f"Review saved to: {file_path}")
+                        print(f"--- End AI Review ---\n")
+                    except IOError as e:
+                        print(f"\nError saving review to file: {e}")
+                        print("\n--- AI Review ---")
+                        print(review)
+                        print("--- End AI Review ---\n")
+
+                else:
+                    print("Could not get diff for the selected range.")
+
+            elif review_mode == "Review selected individual commits":
+                recent_commits = git_utils.get_recent_commits(project_path)
+                if not recent_commits:
+                    print("No recent commits found.")
                     return
 
-                review = llm_integration.get_code_review(diff, prompt, model_name)
+                selected_commit_strs = questionary.checkbox(
+                    "Select individual commits to review:", choices=recent_commits
+                ).ask()
+
+                if not selected_commit_strs:
+                    print("No commits selected for individual review.")
+                    return
+                
+                # Extract commit hashes and maintain order of selection
+                selected_commit_hashes = [s.split(' ')[0] for s in selected_commit_strs]
+
+                combined_review_content = []
+                for commit_hash in selected_commit_hashes:
+                    print(f"\n--- Reviewing individual commit: {commit_hash} ---")
+                    single_commit_diff = git_utils.get_single_commit_changes(project_path, commit_hash)
+                    
+                    if single_commit_diff:
+                        print(f"Diff for {commit_hash}:\n{single_commit_diff}")
+                        
+                        # Read all markdown files from the prompts directory
+                        script_dir = os.path.dirname(__file__)
+                        tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
+                        prompts_dir = os.path.join(tool_root_dir, "prompts")
+                        
+                        prompt_parts = []
+                        try:
+                            for filename in os.listdir(prompts_dir):
+                                if filename.endswith(".md"):
+                                    file_path = os.path.join(prompts_dir, filename)
+                                    with open(file_path, "r") as f:
+                                        prompt_parts.append(f.read())
+                        except FileNotFoundError:
+                            print(f"Error: Could not find the prompts directory at {prompts_dir}")
+                            return
+                        except Exception as e:
+                            print(f"Error reading prompt files: {e}")
+                            return
+                        
+                        prompt = "\n\n".join(prompt_parts)
+                        if not prompt:
+                            print("Error: No prompt content found in the prompts directory.")
+                            return
+                        
+                        individual_review = llm_integration.get_code_review(single_commit_diff, prompt, model_name)
+                        combined_review_content.append(f"## Review for Commit: {commit_hash}\n\n{individual_review}\n\n---")
+                    else:
+                        combined_review_content.append(f"## Review for Commit: {commit_hash}\n\nCould not get changes for this commit.\n\n---")
+                
+                review = "\n\n".join(combined_review_content)
                 
                 # --- Save review to file ---
                 results_dir = os.path.join(tool_root_dir, "results")
@@ -187,7 +272,7 @@ def main():
                     print("--- End AI Review ---\n")
 
             else:
-                print("Could not get diff.")
+                print("No review mode selected. Exiting.")
                 
         else:
             print("Could not determine the current branch.")
