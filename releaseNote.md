@@ -40,3 +40,10 @@ This release introduces significant enhancements to the AI Code Review CLI, focu
 ---
 
 Thank you for using the AI Code Review CLI!
+
+---
+## 0.0.1b2
+- **Author:** Lewis
+- **Date:** 2025-08-19 11:25:52 +0800
+- **Changes:**
+  - Implement default project path management
