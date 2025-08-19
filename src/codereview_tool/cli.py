@@ -22,8 +22,9 @@ def setup_configuration():
         api_key = questionary.text("Please enter your Gemini API key:").ask()
         if not api_key:
             print("API key is required. Exiting.")
-            return False
+            return False, None # Return False and None for model_name
         set_key(dotenv_path, "GEMINI_API_KEY", api_key)
+        load_dotenv(dotenv_path=dotenv_path) # Reload after setting key
         print("API key saved to .env file.")
     
     try:
@@ -31,7 +32,7 @@ def setup_configuration():
         print("Gemini API key configured successfully.")
     except Exception as e:
         print(f"Failed to configure Gemini API: {e}")
-        return False
+        return False, None # Return False and None for model_name
 
     # --- Model Name Setup ---
     model_name = os.getenv("GEMINI_MODEL")
@@ -47,7 +48,7 @@ def setup_configuration():
                 
                 if not supported_models:
                     print("Could not find any supported models for your API key.")
-                    return False
+                    return False, None # Return False and None for model_name
 
                 # Prefer pro models
                 pro_models = [m for m in supported_models if 'pro' in m]
@@ -64,27 +65,50 @@ def setup_configuration():
 
         if not model_name:
             print("Model name is required. Exiting.")
-            return False
+            return False, None # Return False and None for model_name
         
         set_key(dotenv_path, "GEMINI_MODEL", model_name)
+        load_dotenv(dotenv_path=dotenv_path) # Reload after setting model name
         print(f"Model name '{model_name}' saved to .env file.")
 
-    return True
+    return True, model_name # Return success status and model_name
 
 
 def main():
     print("Welcome to the AI Code Review Tool!")
     
-    if not setup_configuration():
+    success, model_name = setup_configuration()
+    if not success or model_name is None:
         return
 
-    model_name = os.getenv("GEMINI_MODEL")
+    # --- Default Project Path Logic ---
+    script_dir = os.path.dirname(__file__)
+    tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
+    dotenv_path = os.path.join(tool_root_dir, ".env")
+    load_dotenv(dotenv_path=dotenv_path) # Reload to get latest .env changes
 
-    project_path = questionary.text("What is the absolute path to your project?").ask()
+    default_project_path = os.getenv("DEFAULT_PROJECT_PATH")
+    project_path = None
+
+    if default_project_path and os.path.isdir(default_project_path):
+        use_default = questionary.confirm(f"Use default project path: {default_project_path}?").ask()
+        if use_default:
+            project_path = default_project_path
+        else:
+            project_path = questionary.text("What is the absolute path to your project?").ask()
+    else:
+        project_path = questionary.text("What is the absolute path to your project?").ask()
 
     if not project_path or not os.path.isdir(project_path):
-        print("Invalid project path.")
+        print("Invalid project path. Exiting.")
         return
+
+    # Ask to save as default if it's a new path or not the current default
+    if project_path != default_project_path:
+        save_as_default = questionary.confirm("Save this as default project path for future use?").ask()
+        if save_as_default:
+            set_key(dotenv_path, "DEFAULT_PROJECT_PATH", project_path)
+            print(f"Default project path saved: {project_path}")
 
     print(f"Analyzing project at: {project_path}")
 
