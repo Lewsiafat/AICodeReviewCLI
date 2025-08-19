@@ -5,6 +5,8 @@ import questionary
 from dotenv import load_dotenv, set_key
 import google.generativeai as genai
 import datetime
+import subprocess
+from rich import print
 
 def setup_configuration():
     """
@@ -115,6 +117,40 @@ def main():
     if git_utils.is_git_repository(project_path):
         print("This is a Git repository.")
         
+        # --- New code starts here ---
+        try:
+            current_branch = git_utils.get_current_branch(project_path)
+            if current_branch:
+                print(f"Currently on branch: [bold cyan]{current_branch}[/bold cyan]")
+        except Exception as e:
+            print(f"[yellow]Could not determine the current branch: {e}[/yellow]")
+
+        if questionary.confirm("Do you want to run 'git fetch' or 'git pull' to get the latest changes before proceeding?").ask():
+            action = questionary.select(
+                "Which command do you want to run?",
+                choices=[
+                    questionary.Choice("git fetch", value="fetch"),
+                    questionary.Choice("git pull", value="pull"),
+                    questionary.Choice("cancel", value="cancel")
+                ]
+            ).ask()
+
+            if action == "fetch":
+                try:
+                    print("Running 'git fetch'...")
+                    git_utils.git_fetch(project_path)
+                    print("[bold green]Fetch successful.[/bold green]")
+                except subprocess.CalledProcessError as e:
+                    print(f"[bold red]Error during git fetch:[/bold red]\n{e.stderr}")
+            elif action == "pull":
+                try:
+                    print("Running 'git pull'...")
+                    git_utils.git_pull(project_path)
+                    print("[bold green]Pull successful.[/bold green]")
+                except subprocess.CalledProcessError as e:
+                    print(f"[bold red]Error during git pull:[/bold red]\n{e.stderr}")
+        # --- New code ends here ---
+
         branches = git_utils.get_branches(project_path)
         if not branches:
             print("No branches found.")

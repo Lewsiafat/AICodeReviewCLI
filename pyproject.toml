@@ -7,6 +7,7 @@ dependencies = [
     "questionary",  # For interactive CLI prompts
     "python-dotenv",# For loading .env files
     "google-generativeai", # For Google Gemini API
+    "rich", # For rich text and beautiful formatting in the terminal
 ]
 
 [project.scripts]
