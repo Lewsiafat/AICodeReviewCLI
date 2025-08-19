@@ -47,3 +47,12 @@ Thank you for using the AI Code Review CLI!
 - **Date:** 2025-08-19 11:25:52 +0800
 - **Changes:**
   - Implement default project path management
+
+---
+## 0.0.1b5
+- **Features:**
+  - Displays the current Git branch upon startup.
+  - Prompts the user to run `git fetch` or `git pull` before selecting a branch to ensure local refs are up-to-date.
+- **Fixes:**
+  - Added `rich` to dependencies to resolve `ModuleNotFoundError`.
+  - Corrected a bug that caused a `git git branch -a` invalid command error.
