@@ -56,3 +56,8 @@ Thank you for using the AI Code Review CLI!
 - **Fixes:**
   - Added `rich` to dependencies to resolve `ModuleNotFoundError`.
   - Corrected a bug that caused a `git git branch -a` invalid command error.
+
+---
+## 0.0.1b6
+- **Fixes:**
+  - Implemented a defensive check to handle empty responses from the Gemini API, preventing crashes when the model returns no content (e.g., due to safety filters).
