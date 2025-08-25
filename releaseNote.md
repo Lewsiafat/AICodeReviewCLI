@@ -61,3 +61,12 @@ Thank you for using the AI Code Review CLI!
 ## 0.0.1b6
 - **Fixes:**
   - Implemented a defensive check to handle empty responses from the Gemini API, preventing crashes when the model returns no content (e.g., due to safety filters).
+
+---
+## 0.0.1b7
+- **Features:**
+  - Added a loading animation (spinner) while waiting for the AI to generate a review.
+  - After a review is saved, the tool now automatically opens the `results` folder.
+  - After opening the folder, the tool asks if you want to open the report file directly.
+- **Internal:**
+  - Replaced `questionary.spinner` with `rich.live` and `rich.spinner` to resolve version dependency issues.
