@@ -6,7 +6,29 @@ from dotenv import load_dotenv, set_key
 import google.generativeai as genai
 import datetime
 import subprocess
+import platform
 from rich import print
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+
+console = Console()
+
+# --- 新增輔助函式 ---
+def open_path(path):
+    """Opens a file or directory in the default application in a cross-platform way."""
+    try:
+        system = platform.system()
+        if system == "Windows":
+            # os.startfile is only available on Windows
+            os.startfile(path)
+        elif system == "Darwin":  # macOS
+            subprocess.run(["open", path], check=True)
+        else:  # Linux and other Unix-like systems
+            subprocess.run(["xdg-open", path], check=True)
+    except (OSError, subprocess.CalledProcessError) as e:
+        print(f"[bold red]Error opening '{path}': {e}[/bold red]")
+# --- 輔助函式結束 ---
 
 def setup_configuration():
     """
@@ -87,7 +109,7 @@ def main():
     script_dir = os.path.dirname(__file__)
     tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
     dotenv_path = os.path.join(tool_root_dir, ".env")
-    load_dotenv(dotenv_path=dotenv_path) # Reload to get latest .env changes
+    load_dotenv(dotenv_path=dotenv_path)
 
     default_project_path = os.getenv("DEFAULT_PROJECT_PATH")
     project_path = None
@@ -105,7 +127,6 @@ def main():
         print("Invalid project path. Exiting.")
         return
 
-    # Ask to save as default if it's a new path or not the current default
     if project_path != default_project_path:
         save_as_default = questionary.confirm("Save this as default project path for future use?").ask()
         if save_as_default:
@@ -117,7 +138,6 @@ def main():
     if git_utils.is_git_repository(project_path):
         print("This is a Git repository.")
         
-        # --- New code starts here ---
         try:
             current_branch = git_utils.get_current_branch(project_path)
             if current_branch:
@@ -149,7 +169,6 @@ def main():
                     print("[bold green]Pull successful.[/bold green]")
                 except subprocess.CalledProcessError as e:
                     print(f"[bold red]Error during git pull:[/bold red]\n{e.stderr}")
-        # --- New code ends here ---
 
         branches = git_utils.get_branches(project_path)
         if not branches:
@@ -188,11 +207,6 @@ def main():
                     diff = git_utils.get_commit_diff(project_path, from_commit, to_commit)
                 
                 if diff:
-                    print("\n--- Diff ---")
-                    print(diff)
-                    print("--- End Diff ---\n")
-
-                    # Read all markdown files from the prompts directory
                     script_dir = os.path.dirname(__file__)
                     tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
                     prompts_dir = os.path.join(tool_root_dir, "prompts")
@@ -207,23 +221,20 @@ def main():
                     except FileNotFoundError:
                         print(f"Error: Could not find the prompts directory at {prompts_dir}")
                         return
-                    except Exception as e:
-                        print(f"Error reading prompt files: {e}")
-                        return
                     
                     prompt = "\n\n".join(prompt_parts)
                     if not prompt:
                         print("Error: No prompt content found in the prompts directory.")
                         return
 
-                    review = llm_integration.get_code_review(diff, prompt, model_name)
+                    with Live(Spinner("dots", text="Generating AI code review, please wait..."), console=console, transient=True):
+                        review = llm_integration.get_code_review(diff, prompt, model_name)
                     
-                    # --- Save review to file ---
                     results_dir = os.path.join(tool_root_dir, "results")
                     os.makedirs(results_dir, exist_ok=True)
 
                     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                    sanitized_model_name = model_name.replace('/', '_') # Sanitize for filename
+                    sanitized_model_name = model_name.replace('/', '_')
                     
                     serial = 1
                     while True:
@@ -239,6 +250,11 @@ def main():
                         print(f"\n--- AI Review complete ---")
                         print(f"Review saved to: {file_path}")
                         print(f"--- End AI Review ---\n")
+
+                        open_path(results_dir)
+                        if questionary.confirm("Do you want to open the report file?").ask():
+                            open_path(file_path)
+
                     except IOError as e:
                         print(f"\nError saving review to file: {e}")
                         print("\n--- AI Review ---")
@@ -262,54 +278,43 @@ def main():
                     print("No commits selected for individual review.")
                     return
                 
-                # Extract commit hashes and maintain order of selection
                 selected_commit_hashes = [s.split(' ')[0] for s in selected_commit_strs]
 
                 combined_review_content = []
-                for commit_hash in selected_commit_hashes:
-                    print(f"\n--- Reviewing individual commit: {commit_hash} ---")
-                    single_commit_diff = git_utils.get_single_commit_changes(project_path, commit_hash)
-                    
-                    if single_commit_diff:
-                        print(f"Diff for {commit_hash}:\n{single_commit_diff}")
+                spinner = Spinner("dots", text="Generating AI code reviews...")
+                with Live(spinner, console=console, transient=True):
+                    for commit_hash in selected_commit_hashes:
+                        spinner.text = f"Reviewing commit: {commit_hash}"
+                        single_commit_diff = git_utils.get_single_commit_changes(project_path, commit_hash)
                         
-                        # Read all markdown files from the prompts directory
-                        script_dir = os.path.dirname(__file__)
-                        tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
-                        prompts_dir = os.path.join(tool_root_dir, "prompts")
-                        
-                        prompt_parts = []
-                        try:
-                            for filename in os.listdir(prompts_dir):
-                                if filename.endswith(".md"):
-                                    file_path = os.path.join(prompts_dir, filename)
-                                    with open(file_path, "r") as f:
-                                        prompt_parts.append(f.read())
-                        except FileNotFoundError:
-                            print(f"Error: Could not find the prompts directory at {prompts_dir}")
-                            return
-                        except Exception as e:
-                            print(f"Error reading prompt files: {e}")
-                            return
-                        
-                        prompt = "\n\n".join(prompt_parts)
-                        if not prompt:
-                            print("Error: No prompt content found in the prompts directory.")
-                            return
-                        
-                        individual_review = llm_integration.get_code_review(single_commit_diff, prompt, model_name)
-                        combined_review_content.append(f"## Review for Commit: {commit_hash}\n\n{individual_review}\n\n---")
-                    else:
-                        combined_review_content.append(f"## Review for Commit: {commit_hash}\n\nCould not get changes for this commit.\n\n---")
+                        if single_commit_diff:
+                            script_dir = os.path.dirname(__file__)
+                            tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
+                            prompts_dir = os.path.join(tool_root_dir, "prompts")
+                            prompt_parts = []
+                            try:
+                                for filename in os.listdir(prompts_dir):
+                                    if filename.endswith(".md"):
+                                        file_path = os.path.join(prompts_dir, filename)
+                                        with open(file_path, "r") as f:
+                                            prompt_parts.append(f.read())
+                            except FileNotFoundError:
+                                print(f"Error: Could not find the prompts directory at {prompts_dir}")
+                                return
+                            prompt = "\n\n".join(prompt_parts)
+
+                            individual_review = llm_integration.get_code_review(single_commit_diff, prompt, model_name)
+                            combined_review_content.append(f"## Review for Commit: {commit_hash}\n\n{individual_review}\n\n---")
+                        else:
+                            combined_review_content.append(f"## Review for Commit: {commit_hash}\n\nCould not get changes for this commit.\n\n---")
                 
                 review = "\n\n".join(combined_review_content)
                 
-                # --- Save review to file ---
                 results_dir = os.path.join(tool_root_dir, "results")
                 os.makedirs(results_dir, exist_ok=True)
 
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                sanitized_model_name = model_name.replace('/', '_') # Sanitize for filename
+                sanitized_model_name = model_name.replace('/', '_')
                 
                 serial = 1
                 while True:
@@ -325,17 +330,16 @@ def main():
                     print(f"\n--- AI Review complete ---")
                     print(f"Review saved to: {file_path}")
                     print(f"--- End AI Review ---\n")
+
+                    open_path(results_dir)
+                    if questionary.confirm("Do you want to open the report file?").ask():
+                        open_path(file_path)
+
                 except IOError as e:
                     print(f"\nError saving review to file: {e}")
                     print("\n--- AI Review ---")
                     print(review)
                     print("--- End AI Review ---\n")
-
-            else:
-                print("No review mode selected. Exiting.")
-                
-        else:
-            print("Could not determine the current branch.")
     else:
         print("This is not a Git repository.")
 
