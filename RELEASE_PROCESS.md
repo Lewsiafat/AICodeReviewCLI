@@ -2,9 +2,32 @@
 
 This document outlines the standard process for releasing a new version of the AI Code Review CLI.
 
-## 1. Merge Feature Branch into `master`
+## 1. Commit Feature Branch Changes (On Your Feature Branch)
 
-All new features and fixes should be developed in a separate feature branch (e.g., `feat_new_feature`, `fix_some_bug`). When development is complete, merge it into the `master` branch.
+Before merging, ensure all your work on the feature branch is committed with a clear and descriptive message.
+
+1.  **Review Changes:** Check the files you have modified.
+    ```bash
+    git status
+    ```
+
+2.  **Prepare Commit Message:** Based on the changes, write a commit message following a clear standard (e.g., `feat: ...` for new features, `fix: ...` for bug fixes).
+
+3.  **Confirm Message and Commit:**
+    *   **Action:** Propose the commit message to the user (or team member).
+    *   **Confirmation:** The user confirms the message is accurate.
+    *   **Execution:** Once confirmed, stage and commit the files.
+    ```bash
+    # Stage the relevant files
+    git add <file1> <file2> ...
+
+    # Commit with the confirmed message
+    git commit -m "feat: Your descriptive title" -m "Optional longer description body."
+    ```
+
+## 2. Merge Feature Branch into `master`
+
+When development on the feature branch is complete and committed, merge it into the `master` branch.
 
 1.  **Get Current Branch Name:**
     ```bash
@@ -23,15 +46,15 @@ All new features and fixes should be developed in a separate feature branch (e.g
     git merge <your-feature-branch-name>
     ```
 
-## 2. Update Release Notes
+## 3. Update Release Notes
 
-Before bumping the version, document the changes in `releaseNote.md`.
+On the `master` branch, document the changes in `releaseNote.md`.
 
 1.  Open `releaseNote.md`.
 2.  Add a new section for the upcoming version (e.g., `## 0.0.1bX`).
 3.  Clearly list the new features, bug fixes, and any other notable changes.
 
-## 3. Run the Version Bump Script
+## 4. Run the Version Bump Script
 
 The `bump_version.py` script automates the rest of the process.
 
@@ -45,7 +68,7 @@ The `bump_version.py` script automates the rest of the process.
     *   Creates a single Git commit containing the changes to `releaseNote.md`, `pyproject.toml`, and `__init__.py`. The commit message will be `chore: Bump version to ...`.
     *   Creates a new Git tag for the new version (e.g., `v0.0.1bX`).
 
-## 4. Push Changes and Tags
+## 5. Push Changes and Tags
 
 After the script completes, push your changes and the new tag to the remote repository.
 
@@ -54,5 +77,5 @@ After the script completes, push your changes and the new tag to the remote repo
 git push origin master
 
 # Push the new tag
-git push origin <tag_name>  # e.g., git push origin v0.0.1b6
+git push origin <tag_name>  # e.g., git push origin v0.0.1b8
 ```

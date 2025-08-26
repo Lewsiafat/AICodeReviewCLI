@@ -1,6 +1,7 @@
 from . import git_utils
 from . import llm_integration
 import os
+import sys
 import questionary
 from dotenv import load_dotenv, set_key
 import google.generativeai as genai
@@ -14,13 +15,11 @@ from rich.live import Live
 
 console = Console()
 
-# --- 新增輔助函式 ---
 def open_path(path):
     """Opens a file or directory in the default application in a cross-platform way."""
     try:
         system = platform.system()
         if system == "Windows":
-            # os.startfile is only available on Windows
             os.startfile(path)
         elif system == "Darwin":  # macOS
             subprocess.run(["open", path], check=True)
@@ -28,9 +27,8 @@ def open_path(path):
             subprocess.run(["xdg-open", path], check=True)
     except (OSError, subprocess.CalledProcessError) as e:
         print(f"[bold red]Error opening '{path}': {e}[/bold red]")
-# --- 輔助函式結束 ---
 
-def setup_configuration():
+def setup_configuration(is_reconfig=False):
     """
     Handles API key and model name configuration.
     """
@@ -41,71 +39,71 @@ def setup_configuration():
 
     # --- API Key Setup ---
     api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or api_key == "YOUR_API_KEY_HERE":
-        print("Gemini API key not found or is invalid.")
-        api_key = questionary.text("Please enter your Gemini API key:").ask()
-        if not api_key:
+    if is_reconfig or not api_key or api_key == "YOUR_API_KEY_HERE":
+        if is_reconfig:
+            print("Re-configuring Gemini API key.")
+        else:
+            print("Gemini API key not found or is invalid.")
+        api_key_input = questionary.text("Please enter your Gemini API key:", default=api_key if api_key != "YOUR_API_KEY_HERE" else "").ask()
+        if not api_key_input:
             print("API key is required. Exiting.")
-            return False, None # Return False and None for model_name
-        set_key(dotenv_path, "GEMINI_API_KEY", api_key)
-        load_dotenv(dotenv_path=dotenv_path) # Reload after setting key
+            return False, None
+        set_key(dotenv_path, "GEMINI_API_KEY", api_key_input)
+        api_key = api_key_input
         print("API key saved to .env file.")
     
     try:
         genai.configure(api_key=api_key)
-        print("Gemini API key configured successfully.")
+        if is_reconfig:
+             print("Gemini API key configured successfully.")
     except Exception as e:
         print(f"Failed to configure Gemini API: {e}")
-        return False, None # Return False and None for model_name
+        return False, None
 
     # --- Model Name Setup ---
     model_name = os.getenv("GEMINI_MODEL")
-    if not model_name:
-        print("\nModel name is not configured.")
+    if is_reconfig or not model_name:
+        if is_reconfig:
+            print("\nRe-configuring model name.")
+        else:
+            print("\nModel name is not configured.")
         
         use_list = questionary.confirm("Would you like to select from a list of available models?").ask()
 
         if use_list:
             try:
                 print("Fetching available models...")
-                supported_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                all_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
                 
-                if not supported_models:
+                if not all_models:
                     print("Could not find any supported models for your API key.")
-                    return False, None # Return False and None for model_name
+                    return False, None
 
-                # Prefer pro models
-                pro_models = [m for m in supported_models if 'pro' in m]
-                if pro_models:
-                    model_name = questionary.select("Select a model:", choices=pro_models).ask()
-                else:
-                    model_name = questionary.select("Select a model:", choices=supported_models).ask()
+                # Sort to show pro models first, then flash, then others
+                pro_models = sorted([m for m in all_models if 'pro' in m])
+                flash_models = sorted([m for m in all_models if 'flash' in m])
+                other_models = sorted([m for m in all_models if 'pro' not in m and 'flash' not in m])
+                sorted_models = pro_models + flash_models + other_models
+
+                model_name = questionary.select("Select a model:", choices=sorted_models, default=model_name).ask()
 
             except Exception as e:
                 print(f"Could not fetch model list: {e}")
-                model_name = questionary.text("Please enter the model name manually (e.g., gemini-1.5-pro-latest):").ask()
+                model_name = questionary.text("Please enter the model name manually (e.g., gemini-1.5-pro-latest):", default=model_name or "").ask()
         else:
-            model_name = questionary.text("Please enter the model name to use (e.g., gemini-1.5-pro-latest):").ask()
+            model_name = questionary.text("Please enter the model name to use (e.g., gemini-1.5-pro-latest):", default=model_name or "").ask()
 
         if not model_name:
             print("Model name is required. Exiting.")
-            return False, None # Return False and None for model_name
+            return False, None
         
         set_key(dotenv_path, "GEMINI_MODEL", model_name)
-        load_dotenv(dotenv_path=dotenv_path) # Reload after setting model name
         print(f"Model name '{model_name}' saved to .env file.")
 
-    return True, model_name # Return success status and model_name
+    return True, model_name
 
-
-def main():
-    print("Welcome to the AI Code Review Tool!")
-    
-    success, model_name = setup_configuration()
-    if not success or model_name is None:
-        return
-
-    # --- Default Project Path Logic ---
+def setup_project_path(is_reconfig=False):
+    """Handles default project path configuration."""
     script_dir = os.path.dirname(__file__)
     tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
     dotenv_path = os.path.join(tool_root_dir, ".env")
@@ -114,7 +112,10 @@ def main():
     default_project_path = os.getenv("DEFAULT_PROJECT_PATH")
     project_path = None
 
-    if default_project_path and os.path.isdir(default_project_path):
+    if is_reconfig:
+        print("\nRe-configuring default project path.")
+        project_path = questionary.text("Enter the new absolute path for your project:", default=default_project_path or "").ask()
+    elif default_project_path and os.path.isdir(default_project_path):
         use_default = questionary.confirm(f"Use default project path: {default_project_path}?").ask()
         if use_default:
             project_path = default_project_path
@@ -124,14 +125,35 @@ def main():
         project_path = questionary.text("What is the absolute path to your project?").ask()
 
     if not project_path or not os.path.isdir(project_path):
-        print("Invalid project path. Exiting.")
-        return
+        print("Invalid project path provided. Exiting.")
+        return None
 
     if project_path != default_project_path:
         save_as_default = questionary.confirm("Save this as default project path for future use?").ask()
         if save_as_default:
             set_key(dotenv_path, "DEFAULT_PROJECT_PATH", project_path)
             print(f"Default project path saved: {project_path}")
+    
+    return project_path
+
+def main():
+    # --- Handle Re-configuration Flag ---
+    if '--config' in sys.argv or '--setup' in sys.argv:
+        print("Entering setup mode...")
+        setup_configuration(is_reconfig=True)
+        setup_project_path(is_reconfig=True)
+        print("\nConfiguration complete.")
+        return
+
+    print("Welcome to the AI Code Review Tool!")
+    
+    success, model_name = setup_configuration()
+    if not success:
+        return
+
+    project_path = setup_project_path()
+    if not project_path:
+        return
 
     print(f"Analyzing project at: {project_path}")
 
@@ -247,9 +269,9 @@ def main():
                     try:
                         with open(file_path, "w") as f:
                             f.write(review)
-                        print(f"\n--- AI Review complete ---")
+                        print("\n--- AI Review complete ---")
                         print(f"Review saved to: {file_path}")
-                        print(f"--- End AI Review ---\n")
+                        print("--- End AI Review ---")
 
                         open_path(results_dir)
                         if questionary.confirm("Do you want to open the report file?").ask():
@@ -259,7 +281,7 @@ def main():
                         print(f"\nError saving review to file: {e}")
                         print("\n--- AI Review ---")
                         print(review)
-                        print("--- End AI Review ---\n")
+                        print("--- End AI Review ---")
 
                 else:
                     print("Could not get diff for the selected range.")
@@ -327,9 +349,9 @@ def main():
                 try:
                     with open(file_path, "w") as f:
                         f.write(review)
-                    print(f"\n--- AI Review complete ---")
+                    print("\n--- AI Review complete ---")
                     print(f"Review saved to: {file_path}")
-                    print(f"--- End AI Review ---\n")
+                    print("--- End AI Review ---")
 
                     open_path(results_dir)
                     if questionary.confirm("Do you want to open the report file?").ask():
@@ -339,7 +361,7 @@ def main():
                     print(f"\nError saving review to file: {e}")
                     print("\n--- AI Review ---")
                     print(review)
-                    print("--- End AI Review ---\n")
+                    print("--- End AI Review ---")
     else:
         print("This is not a Git repository.")
 
