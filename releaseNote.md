@@ -78,3 +78,13 @@ Thank you for using the AI Code Review CLI!
 - **Fixes:**
   - The AI model selection list now correctly shows all available models (including `flash` models), with `pro` and `flash` models sorted first for convenience.
   - Removed extra newline characters from console output for cleaner formatting.
+
+---
+## 0.0.1b9
+- **Features:**
+  - Added `--config` and `--setup` flags to allow re-entering the configuration mode at any time.
+- **Fixes:**
+  - The AI model selection list now correctly shows all available models (including `flash` models), with `pro` and `flash` models sorted first for convenience.
+  - Removed extra newline characters from console output for cleaner formatting.
+- **Documentation:**
+  - Updated the release process documentation (`RELEASE_PROCESS.md`) to include a step for confirming commit messages.

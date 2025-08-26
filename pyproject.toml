@@ -1,6 +1,6 @@
 [project]
 name = "local-codereview"
-version = "0.0.1b8"
+version = "0.0.1b9"
 description = "A local CLI tool for Git-based code reviews with LLM integration."
 requires-python = ">=3.9"
 dependencies = [
