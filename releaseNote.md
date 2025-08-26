@@ -70,3 +70,11 @@ Thank you for using the AI Code Review CLI!
   - After opening the folder, the tool asks if you want to open the report file directly.
 - **Internal:**
   - Replaced `questionary.spinner` with `rich.live` and `rich.spinner` to resolve version dependency issues.
+
+---
+## 0.0.1b8
+- **Features:**
+  - Added `--config` and `--setup` flags to allow re-entering the configuration mode at any time.
+- **Fixes:**
+  - The AI model selection list now correctly shows all available models (including `flash` models), with `pro` and `flash` models sorted first for convenience.
+  - Removed extra newline characters from console output for cleaner formatting.
