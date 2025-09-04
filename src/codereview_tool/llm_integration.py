@@ -1,11 +1,20 @@
 import os
 import google.generativeai as genai
 
-def get_code_review(diff: str, prompt: str, model_name: str) -> str:
+def get_code_review(diff: str, prompt: str, model_name: str, debug_mode: bool = False) -> str:
     """
     Gets a code review from the Gemini API using a specified model.
     Assumes API key is already configured.
     """
+    if debug_mode:
+        print("\n--- DEBUG MODE: AI API call skipped ---")
+        print("\n--- PROMPT that would be sent to AI ---")
+        print(prompt)
+        print("\n--- CODE DIFF that would be sent to AI ---")
+        print(diff)
+        print("\n--- END DEBUG MODE ---")
+        return "AI API call skipped in debug mode. Diff and prompt printed above."
+
     try:
         # ANSI escape codes for colors
         CYAN = '\033[96m'

@@ -88,3 +88,9 @@ Thank you for using the AI Code Review CLI!
   - Removed extra newline characters from console output for cleaner formatting.
 - **Documentation:**
   - Updated the release process documentation (`RELEASE_PROCESS.md`) to include a step for confirming commit messages.
+---
+## 0.0.1b10
+- **Features:**
+  - **Empty Diff Check**: In "Review selected individual commits" mode, the tool now checks if a selected commit has actual code changes. If the diff is empty or contains no file changes, it notifies the user and skips sending an empty request to the AI.
+  - **Debug Mode**: Added a `--debug` command-line parameter to skip AI API calls and print the diff and prompt that would be sent to the AI.
+  - **Debug Mode Indicator**: A clear message is now displayed at the beginning of the program execution when debug mode is active.

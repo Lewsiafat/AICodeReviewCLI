@@ -78,8 +78,10 @@ You can customize the instructions given to the AI model by modifying or adding 
 Once set up, run the tool from the project root directory:
 
 ```bash
-python -m codereview_tool.cli
+python -m codereview_tool.cli [--debug]
 ```
+
+*   **`--debug`**: (Optional) Enable debug mode. When active, the tool will print the code diff and the prompt that would be sent to the AI, but will skip the actual AI API call. This is useful for debugging and understanding the AI's input without incurring API costs.
 
 The tool will then guide you through the following interactive steps:
 

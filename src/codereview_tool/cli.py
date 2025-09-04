@@ -3,6 +3,7 @@ from . import llm_integration
 import os
 import sys
 import questionary
+import argparse # Added
 from dotenv import load_dotenv, set_key
 import google.generativeai as genai
 import datetime
@@ -137,13 +138,25 @@ def setup_project_path(is_reconfig=False):
     return project_path
 
 def main():
+    # --- Argument Parsing ---
+    parser = argparse.ArgumentParser(description="AI Code Review Tool CLI.")
+    parser.add_argument('--config', action='store_true', help='Enter configuration mode.')
+    parser.add_argument('--setup', action='store_true', help='Enter setup mode (alias for --config).')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode to print diff and prompt without calling AI API.')
+    args = parser.parse_args()
+
     # --- Handle Re-configuration Flag ---
-    if '--config' in sys.argv or '--setup' in sys.argv:
+    if args.config or args.setup:
         print("Entering setup mode...")
         setup_configuration(is_reconfig=True)
         setup_project_path(is_reconfig=True)
         print("\nConfiguration complete.")
         return
+    
+    debug_mode = args.debug # Get debug mode status
+
+    if debug_mode:
+        print("[bold yellow]DEBUG MODE ENABLED: AI API calls will be skipped.[/bold yellow]")
 
     print("Welcome to the AI Code Review Tool!")
     
@@ -250,7 +263,7 @@ def main():
                         return
 
                     with Live(Spinner("dots", text="Generating AI code review, please wait..."), console=console, transient=True):
-                        review = llm_integration.get_code_review(diff, prompt, model_name)
+                        review = llm_integration.get_code_review(diff, prompt, model_name, debug_mode=debug_mode)
                     
                     results_dir = os.path.join(tool_root_dir, "results")
                     os.makedirs(results_dir, exist_ok=True)
@@ -304,31 +317,36 @@ def main():
 
                 combined_review_content = []
                 spinner = Spinner("dots", text="Generating AI code reviews...")
-                with Live(spinner, console=console, transient=True):
-                    for commit_hash in selected_commit_hashes:
-                        spinner.text = f"Reviewing commit: {commit_hash}"
-                        single_commit_diff = git_utils.get_single_commit_changes(project_path, commit_hash)
+                with Live(spinner, console=console, transient=True) as live:
+                    for i, commit_hash in enumerate(selected_commit_hashes):
+                        live.update(Spinner("dots", text=f"({i+1}/{len(selected_commit_hashes)}) Reviewing commit: {commit_hash}"))
                         
-                        if single_commit_diff:
-                            script_dir = os.path.dirname(__file__)
-                            tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
-                            prompts_dir = os.path.join(tool_root_dir, "prompts")
-                            prompt_parts = []
-                            try:
-                                for filename in os.listdir(prompts_dir):
-                                    if filename.endswith(".md"):
-                                        file_path = os.path.join(prompts_dir, filename)
-                                        with open(file_path, "r") as f:
-                                            prompt_parts.append(f.read())
-                            except FileNotFoundError:
-                                print(f"Error: Could not find the prompts directory at {prompts_dir}")
-                                return
-                            prompt = "\n\n".join(prompt_parts)
+                        single_commit_diff = git_utils.get_single_commit_changes(project_path, commit_hash)
 
-                            individual_review = llm_integration.get_code_review(single_commit_diff, prompt, model_name)
-                            combined_review_content.append(f"## Review for Commit: {commit_hash}\n\n{individual_review}\n\n---")
-                        else:
-                            combined_review_content.append(f"## Review for Commit: {commit_hash}\n\nCould not get changes for this commit.\n\n---")
+                        # If diff is None (error) or contains no actual file changes
+                        if not single_commit_diff or 'diff --git' not in single_commit_diff:
+                            live.console.print(f"[bold yellow]提示：[/bold yellow]提交 [cyan]{commit_hash[:7]}[/cyan] 沒有實際的程式碼變更，已跳過。")
+                            combined_review_content.append(f"## Review for Commit: {commit_hash}\n\n此提交沒有實際的程式碼變更，已跳過 (Skipped as this commit contains no file changes).\n\n---")
+                            continue
+
+                        # If we are here, the diff is valid and has content
+                        script_dir = os.path.dirname(__file__)
+                        tool_root_dir = os.path.dirname(os.path.dirname(script_dir))
+                        prompts_dir = os.path.join(tool_root_dir, "prompts")
+                        prompt_parts = []
+                        try:
+                            for filename in os.listdir(prompts_dir):
+                                if filename.endswith(".md"):
+                                    file_path = os.path.join(prompts_dir, filename)
+                                    with open(file_path, "r") as f:
+                                        prompt_parts.append(f.read())
+                        except FileNotFoundError:
+                            print(f"Error: Could not find the prompts directory at {prompts_dir}")
+                            return
+                        prompt = "\n\n".join(prompt_parts)
+
+                        individual_review = llm_integration.get_code_review(single_commit_diff, prompt, model_name, debug_mode=debug_mode)
+                        combined_review_content.append(f"## Review for Commit: {commit_hash}\n\n{individual_review}\n\n---")
                 
                 review = "\n\n".join(combined_review_content)
                 
