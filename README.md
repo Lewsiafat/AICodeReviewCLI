@@ -13,6 +13,8 @@ This is a powerful Command Line Interface (CLI) tool designed to automate and en
 *   **Configurable AI Model**: Easily select and manage the Gemini model used for reviews.
 *   **Customizable Prompts**: Tailor the AI's review instructions by modifying simple Markdown files.
 *   **Organized Output**: Saves review reports as Markdown files in a dedicated `results/` directory, with clear, timestamped, and model-named filenames.
+*   **Empty Diff Check**: Automatically detects and skips commits with no actual code changes during individual commit review, preventing unnecessary AI API calls.
+*   **Debug Mode**: Provides a `--debug` option to simulate AI reviews by printing diffs and prompts without making actual API calls, useful for development and cost management.
 
 ## Prerequisites
 
