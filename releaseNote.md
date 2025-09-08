@@ -1,5 +1,14 @@
 # Release Notes
 
+---
+## 0.0.1b11
+- **Features:**
+  - **Folder Review Mode**: Added a new top-level mode to review local files and folders without needing a Git repository. This is useful for reviewing code that is not yet committed or for projects not under version control.
+  - **Interactive File/Folder Selector**: The new Folder Mode includes a hierarchical browser to navigate directories, select multiple files, or select entire folders for the AI to review.
+- **Internal:**
+  - Refactored the main CLI logic to separate "Git Mode" and "Folder Mode" workflows.
+  - Extracted duplicated code for prompt loading and report saving into internal helper functions (`_get_prompt`, `_save_review`) to improve code maintainability.
+
 This release introduces significant enhancements to the AI Code Review CLI, focusing on improved user experience, flexibility, and robustness.
 
 ## New Features & Improvements
