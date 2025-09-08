@@ -1,28 +1,32 @@
 # AI Code Review CLI
 
-This is a powerful Command Line Interface (CLI) tool designed to automate and enhance your code review process using Artificial Intelligence. It integrates seamlessly with Git repositories and leverages Google Gemini's capabilities to provide insightful feedback on your code changes.
+This is a powerful Command Line Interface (CLI) tool designed to automate and enhance your code review process using Artificial Intelligence. It works seamlessly with both **Git repositories** (reviewing commits) and **local directories** (reviewing files), leveraging Google Gemini's capabilities to provide insightful feedback on your code.
 
 ## Features
 
-*   **Interactive Interface**: A user-friendly, menu-driven interface guides you through the review process.
-*   **Git Integration**: Automatically detects Git repositories, fetches branches, and lists recent commits for easy selection.
-*   **Flexible Review Modes**:
-    *   **Cumulative Diff Review**: Review all changes within a specified range of commits (e.g., a feature branch).
-    *   **Individual Commit Review**: Get separate AI feedback for multiple selected individual commits, combined into a single comprehensive report.
-*   **AI-Powered Feedback**: Utilizes Google Gemini to analyze code differences and provide suggestions, identify potential bugs, and highlight style violations.
-*   **Configurable AI Model**: Easily select and manage the Gemini model used for reviews.
-*   **Customizable Prompts**: Tailor the AI's review instructions by modifying simple Markdown files.
-*   **Organized Output**: Saves review reports as Markdown files in a dedicated `results/` directory, with clear, timestamped, and model-named filenames.
-*   **Empty Diff Check**: Automatically detects and skips commits with no actual code changes during individual commit review, preventing unnecessary AI API calls.
-*   **Debug Mode**: Provides a `--debug` option to simulate AI reviews by printing diffs and prompts without making actual API calls, useful for development and cost management.
+*   **Interactive Interface**: A user-friendly, menu-driven interface guides you through the entire review process.
+*   **Dual Review Modes**: Choose the mode that fits your needs:
+    *   **Git Mode**: Analyzes code changes based on Git history. Perfect for reviewing feature branches or individual commits.
+        *   *Cumulative Diff Review*: Review all changes within a specified range of commits.
+        *   *Individual Commit Review*: Get separate AI feedback for multiple selected commits in one report.
+    *   **Folder Mode**: Directly reviews files and folders from your local filesystem. Ideal for projects not under version control or for getting feedback on uncommitted code.
+        *   *Hierarchical Selection*: An interactive file explorer lets you navigate your project, select multiple files, or add entire folders for review.
+*   **AI-Powered Feedback**: Utilizes Google Gemini to analyze code and provide suggestions, identify potential bugs, and highlight style violations.
+*   **Configurable & Customizable**: 
+    *   Easily select the Gemini model for reviews.
+    *   Tailor the AI's review instructions by modifying simple Markdown files in the `prompts/` directory.
+*   **Organized Output**: Saves review reports as Markdown files in a dedicated `results/` directory, with clear, timestamped filenames.
+*   **Efficiency & Control**:
+    *   *Empty Diff Check*: Automatically skips commits with no code changes to save time and API calls.
+    *   *Debug Mode*: A `--debug` option lets you see the exact data sent to the AI without making an API call, useful for development and prompt engineering.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your system:
 
-*   **Git**: Version control system. ([Download Git](https://git-scm.com/downloads))
 *   **Python**: Version 3.9 or higher. ([Download Python](https://www.python.org/downloads/))
 *   **uv**: A fast Python package installer and resolver. ([Install uv](https://astral.sh/uv/install.sh))
+*   **Git**: Required for using the Git-based review mode. ([Download Git](https://git-scm.com/downloads))
 
 ## Setup & Installation
 
@@ -87,12 +91,14 @@ python -m codereview_tool.cli [--debug]
 
 The tool will then guide you through the following interactive steps:
 
-1.  **Project Path**: Enter the absolute path to the Git repository you wish to review.
-2.  **Branch Selection**: Choose the branch you want to review from a list of available branches.
-3.  **Review Mode**: Select how you want to review commits:
-    *   **Review a range of commits (cumulative diff)**: You'll select a starting and ending commit from a list of recent commits. The AI will review all changes between these two points.
-    *   **Review selected individual commits**: You'll select multiple specific commits from a list. The AI will review each selected commit individually, and all reviews will be combined into one report.
-4.  **Commit Selection**: Depending on the review mode, you'll either select a range or individual commits from a list that includes their short hash and commit message.
+1.  **Project Path**: Enter the absolute path to the project you wish to review.
+2.  **Review Mode**: Select how you want to perform the review:
+    *   **Git Mode**: To review commits from a Git repository.
+    *   **Folder Mode**: To review local files/folders.
+
+3.  **Follow-up Steps**: Depending on the mode, you will be guided through further selections:
+    *   If in **Git Mode**, you will select a branch and then choose to review a range of commits or individual commits.
+    *   If in **Folder Mode**, you will use an interactive browser to select the specific files and folders you want the AI to analyze.
 
 ## Output
 
