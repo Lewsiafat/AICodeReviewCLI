@@ -85,6 +85,7 @@ python -m codereview_tool.cli [--debug] [--config|--setup]
 
 *   **`--debug`**：(可選) 啟用除錯模式。啟用時，工具將列印程式碼差異和將發送給 AI 的提示，但會跳過實際的 AI API 呼叫。這對於除錯和理解 AI 輸入而無需產生 API 成本非常有用。
 *   **`--config` / `--setup`**：(可選) 進入配置模式，重新配置您的 Gemini API 金鑰、模型或預設專案路徑。
+*   **`--config` / `--setup`**：(可選) 進入配置模式，重新配置您的 Gemini API 金鑰、模型或預設專案路徑。
 
 工具將引導您完成以下互動步驟：
 
