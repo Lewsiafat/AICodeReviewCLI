@@ -1,6 +1,31 @@
 # Release Notes
 
 ---
+## 0.1.0
+
+This is a major feature release that introduces support for multiple AI providers and significantly enhances configuration flexibility.
+
+### ✨ New Features
+
+*   **Multi-Provider Support**: The tool now supports multiple AI providers. The initial implementation includes:
+    *   **Google** (Gemini models)
+    *   **OpenAI** (GPT models)
+*   **Provider-First Configuration**: The `--config` setup process has been redesigned. It now prompts for the AI provider first, then asks for the corresponding API key and default model, storing them in the `.env` file (e.g., `GOOGLE_API_KEY`, `OPENAI_API_KEY`).
+*   **Runtime Model Selection**: When starting a review, you can now choose to use your default model or select a different provider and model for that specific session.
+*   **Save New Defaults**: If you use a non-default model for a session, the tool will ask if you want to save it as your new default setting.
+
+### 🐛 Bug Fixes
+
+*   **OpenAI API v1.x Compatibility**: Updated the OpenAI provider to use the modern client-based API (`openai>=1.0.0`), resolving a crash during model fetching.
+*   **File/Folder Selection Logic**: Fixed a critical bug in Folder Mode where files selected in the same step as pressing "DONE" were ignored.
+*   **Path Resolution**: Corrected the internal path calculations to ensure the `prompts` and `results` directories are always found correctly.
+
+### 🛠️ Internal Improvements
+
+*   **LLM Provider Abstraction**: Refactored the core AI integration logic into a provider-agnostic framework, making it much easier to add new AI providers in the future.
+*   **Dependency Update**: Added `openai` to the project dependencies in `pyproject.toml`.
+
+---
 ## 0.0.1b11
 - **Features:**
   - **Folder Review Mode**: Added a new top-level mode to review local files and folders without needing a Git repository. This is useful for reviewing code that is not yet committed or for projects not under version control.
