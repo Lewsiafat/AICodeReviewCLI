@@ -8,6 +8,7 @@ dependencies = [
     "python-dotenv",# For loading .env files
     "google-generativeai", # For Google Gemini API
     "openai", # For OpenAI API
+    "anthropic", # For Anthropic (Claude) API
     "rich", # For rich text and beautiful formatting in the terminal
 ]
 
