@@ -159,7 +159,7 @@ def main():
     default_model = os.getenv("DEFAULT_MODEL")
     session_provider, session_model = default_provider, default_model
 
-    if not questionary.confirm(f"Use default model? (Provider: [cyan]{default_provider}[/cyan], Model: [cyan]{default_model}[/cyan])").ask():
+    if not questionary.confirm(f"Use default model? (Provider: {default_provider}, Model: {default_model})").ask():
         session_provider = questionary.select("Select AI provider for this session:", choices=SUPPORTED_PROVIDER_NAMES, default=default_provider).ask()
         api_key_var = f"{_sanitize_for_env(session_provider)}_API_KEY"
         api_key = os.getenv(api_key_var)
