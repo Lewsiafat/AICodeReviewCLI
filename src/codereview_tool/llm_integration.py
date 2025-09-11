@@ -98,7 +98,15 @@ class ClaudeProvider(LLMProvider):
         self.client = anthropic.Anthropic(api_key=self.api_key)
 
     def get_models(self):
-        return sorted(["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"])
+        try:
+            # Attempt to dynamically fetch the model list
+            model_list = self.client.models.list()
+            return sorted([model.id for model in model_list])
+        except Exception as e:
+            print(f"[bold yellow]Warning: Could not fetch Claude model list dynamically ({e}).[/bold yellow]")
+            print("[yellow]Falling back to a hardcoded list of common models.[/yellow]")
+            # Fallback to a more comprehensive hardcoded list
+            return sorted(["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307", "claude-2.1", "claude-2.0", "claude-instant-1.2"])
 
     def generate_review(self, diff_content, prompt, model_name, debug_mode=False):
         if debug_mode:

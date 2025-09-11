@@ -1,6 +1,7 @@
 from . import git_utils
-from .llm_integration import SUPPORTED_PROVIDERS, get_provider_from_name
+from .llm_integration import SUPPORTED_PROVIDER_NAMES, get_provider_from_name
 import os
+import re
 import questionary
 import argparse
 from dotenv import load_dotenv, set_key
@@ -27,10 +28,15 @@ def open_path(path):
     except (OSError, subprocess.CalledProcessError) as e:
         print(f"[bold red]Error opening '{path}': {e}[/bold red]")
 
+def _get_tool_root_dir():
+    return os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
 def _get_dotenv_path():
-    script_dir = os.path.dirname(__file__)
-    tool_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
-    return os.path.join(tool_root_dir, ".env")
+    return os.path.join(_get_tool_root_dir(), ".env")
+
+def _sanitize_for_env(name):
+    """Sanitizes a string to be a valid environment variable name."""
+    return re.sub(r'[^A-Z0-9_]', '', re.sub(r'[\s\(\)]', '_', name).upper()).rstrip('_')
 
 def setup_configuration(is_reconfig=False):
     """Handles multi-provider API key and model name configuration."""
@@ -40,11 +46,11 @@ def setup_configuration(is_reconfig=False):
     provider_name = os.getenv("DEFAULT_PROVIDER")
     if is_reconfig or not provider_name:
         if is_reconfig: print("\n[bold]Re-configuring default provider.[/bold]")
-        provider_name = questionary.select("Select the default AI provider:", choices=list(SUPPORTED_PROVIDERS.keys())).ask()
+        provider_name = questionary.select("Select the default AI provider:", choices=SUPPORTED_PROVIDER_NAMES).ask()
         if not provider_name: return False
         set_key(dotenv_path, "DEFAULT_PROVIDER", provider_name)
 
-    api_key_var = f"{provider_name.upper()}_API_KEY"
+    api_key_var = f"{_sanitize_for_env(provider_name)}_API_KEY"
     api_key = os.getenv(api_key_var)
     if is_reconfig or not api_key:
         if is_reconfig: print(f"\n[bold]Re-configuring {provider_name} API key.[/bold]")
@@ -154,8 +160,8 @@ def main():
     session_provider, session_model = default_provider, default_model
 
     if not questionary.confirm(f"Use default model? (Provider: [cyan]{default_provider}[/cyan], Model: [cyan]{default_model}[/cyan])").ask():
-        session_provider = questionary.select("Select AI provider for this session:", choices=list(SUPPORTED_PROVIDERS.keys()), default=default_provider).ask()
-        api_key_var = f"{session_provider.upper()}_API_KEY"
+        session_provider = questionary.select("Select AI provider for this session:", choices=SUPPORTED_PROVIDER_NAMES, default=default_provider).ask()
+        api_key_var = f"{_sanitize_for_env(session_provider)}_API_KEY"
         api_key = os.getenv(api_key_var)
         if not api_key:
             api_key = questionary.text(f"Please enter your {session_provider} API key for this session:").ask()
@@ -170,7 +176,8 @@ def main():
             print(f"[red]Error setting up provider: {e}[/red]")
             return
 
-    api_key = os.getenv(f"{session_provider.upper()}_API_KEY")
+    api_key_var = f"{_sanitize_for_env(session_provider)}_API_KEY"
+    api_key = os.getenv(api_key_var)
     if not api_key:
         print(f"[red]API key for {session_provider} not found. Please run --config.[/red]")
         return
@@ -182,8 +189,9 @@ def main():
 
     project_path = setup_project_path()
     if not project_path: return
-    tool_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    tool_root_dir = _get_tool_root_dir()
     prompts_dir = os.path.join(tool_root_dir, "prompts")
+    results_dir = os.path.join(tool_root_dir, "results")
     prompt = _get_prompt(prompts_dir)
     if not prompt: 
         print("[red]Could not load any prompts from the prompts directory.[/red]")
@@ -228,7 +236,7 @@ def main():
     elif mode == "Folder Mode":
         selected_paths = []
         current_path = project_path
-        ignore_list = {'.git', '.venv', '__pycache__', '.DS_Store', 'node_modules', 'build', 'dist'}
+        ignore_list = {".git", ".venv", "__pycache__", ".DS_Store", "node_modules", "build", "dist"}
         while True:
             try:
                 items = [item for item in os.listdir(current_path) if item not in ignore_list]
@@ -247,7 +255,6 @@ def main():
             if not selection: # If user cancels with Ctrl+C
                 break
 
-            # --- Process selections before breaking or changing path ---
             should_break = "##DONE##" in selection
             if should_break:
                 selection.remove("##DONE##")
@@ -258,17 +265,14 @@ def main():
 
             nav_dir = next((d for d in selection if d in dirs), None)
             if nav_dir:
-                # Filter out the nav_dir from the selection list
                 selection = [s for s in selection if s != nav_dir]
 
-            # Add all remaining items to selected_paths
             for item in selection:
                 full_path = os.path.join(current_path, item)
                 if full_path not in selected_paths:
                     selected_paths.append(full_path)
                     print(f"[green]Added:[/green] {os.path.relpath(full_path, project_path)}")
             
-            # --- Perform navigation actions after processing adds ---
             if should_break:
                 break
 
@@ -304,7 +308,6 @@ def main():
     if content:
         with Live(Spinner("dots", text=f"Generating review with {session_provider}..."), console=console, transient=True):
             review = provider.generate_review(content, prompt, session_model, args.debug)
-        results_dir = os.path.join(tool_root_dir, "results")
         _save_review(review, results_dir, session_model, title)
         if session_provider != default_provider or session_model != default_model:
             if questionary.confirm("Save this session's model as the new default?").ask():
