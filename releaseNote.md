@@ -1,6 +1,13 @@
 # Release Notes
 
 ---
+## 0.2.1
+
+### 🐛 Bug Fixes
+
+*   **CLI Display**: Removed `rich` markup syntax from a `questionary` prompt to fix an issue where color codes like `[cyan]` were displayed as plain text instead of being rendered as colors.
+
+---
 ## 0.2.0
 
 This release extends the multi-provider support to include Anthropic (Claude) and Grok, and includes several important bug fixes related to the provider framework.
