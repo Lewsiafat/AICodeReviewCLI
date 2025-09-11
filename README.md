@@ -1,34 +1,36 @@
 # AI Code Review CLI
 
-This is a powerful Command Line Interface (CLI) tool designed to automate and enhance your code review process using Artificial Intelligence. It works seamlessly with both **Git repositories** and **local directories**, leveraging large language models from providers like **Google** and **OpenAI** to provide insightful feedback on your code.
+This is a powerful Command Line Interface (CLI) tool designed to automate and enhance your code review process using Artificial Intelligence. It works seamlessly with both **Git repositories** and **local directories**, leveraging large language models from providers like **Google**, **OpenAI**, **Anthropic (Claude)**, and **Grok** to provide insightful feedback on your code.
 
 ## Features
 
-*   **Multi-Provider Support**: Natively supports different AI providers, starting with Google (Gemini models) and OpenAI (GPT models).
+*   **Multi-Provider Support**: Natively supports different AI providers, including:
+    *   Google (Gemini models)
+    *   OpenAI (GPT models)
+    *   Anthropic (Claude models)
+    *   Grok (via OpenAI-compatible API)
 *   **Interactive Interface**: A user-friendly, menu-driven interface guides you through the entire setup and review process.
 *   **Dual Review Modes**: Choose the mode that fits your needs:
-    *   **Git Mode**: Analyzes code changes based on Git history. Perfect for reviewing feature branches or individual commits.
-    *   **Folder Mode**: Directly reviews files and folders from your local filesystem. Ideal for projects not under version control or for getting feedback on uncommitted code.
+    *   **Git Mode**: Analyzes code changes based on Git history.
+    *   **Folder Mode**: Directly reviews files and folders from your local filesystem.
 *   **Flexible Configuration & Usage**:
     *   **Provider-First Setup**: Interactively configure your default AI provider, API key, and model.
     *   **Runtime Model Selection**: For any given review, choose to use your default model or temporarily select a different provider or model for a single session.
     *   **Save on the Fly**: If you like the model you used in a session, you can save it as your new default.
 *   **Customizable Prompts**: Tailor the AI's review instructions by modifying simple Markdown files in the `prompts/` directory.
-*   **Efficiency & Control**:
-    *   *Empty Diff Check*: Automatically skips commits with no code changes to save time and API calls.
+*   **Efficiency & Control**: 
+    *   *Empty Diff Check*: Automatically skips commits with no code changes.
     *   *Debug Mode*: A `--debug` option lets you see the exact data sent to the AI without making an API call.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your system:
 
-*   **Python**: Version 3.9 or higher. ([Download Python](https://www.python.org/downloads/))
-*   **uv**: A fast Python package installer and resolver. ([Install uv](https://astral.sh/uv/install.sh))
-*   **Git**: Required for using the Git-based review mode. ([Download Git](https://git-scm.com/downloads))
+*   **Python**: Version 3.9 or higher.
+*   **uv**: A fast Python package installer and resolver.
+*   **Git**: Required for using the Git-based review mode.
 
 ## Setup & Installation
-
-Follow these steps to get the AI Code Review CLI up and running:
 
 1.  **Clone the Repository**
 2.  **Navigate to the Project Directory**
@@ -37,7 +39,7 @@ Follow these steps to get the AI Code Review CLI up and running:
     uv venv
     source .venv/bin/activate
     ```
-4.  **Install Dependencies**: This command installs all necessary packages, including `google-generativeai` and `openai`.
+4.  **Install Dependencies**: This command installs all necessary packages, including `google-generativeai`, `openai`, and `anthropic`.
     ```bash
     uv pip install -e .
     ```
@@ -46,8 +48,8 @@ Follow these steps to get the AI Code Review CLI up and running:
 
 The tool uses a `.env` file to store your configuration. The first time you run the tool or when using the `--config` flag, you'll be guided through an interactive setup:
 
-1.  **Select Default Provider**: Choose your preferred default AI provider (e.g., "Google" or "OpenAI").
-2.  **Enter API Key**: Provide the API key for the provider you selected. This will be stored securely in your `.env` file (e.g., as `GOOGLE_API_KEY` or `OPENAI_API_KEY`).
+1.  **Select Default Provider**: Choose your preferred default AI provider (e.g., "Google", "OpenAI", "Anthropic (Claude)", "Grok").
+2.  **Enter API Key**: Provide the API key for the provider you selected. This will be stored securely in your `.env` file using a sanitized name (e.g., `GOOGLE_API_KEY`, `ANTHROPIC_CLAUDE_API_KEY`).
 3.  **Select Default Model**: Choose a default model from a list fetched directly from the provider.
 
 Your `.env` file will be automatically managed by the tool.
@@ -73,4 +75,3 @@ After the AI review is complete, the report will be saved as a Markdown file in 
 
 *   **Filename Format**: `YYYYMMDD_HHMMSS_model-name_serial.md`
     *   Example: `20250814_143000_gemini-1.0-pro_001.md`
-

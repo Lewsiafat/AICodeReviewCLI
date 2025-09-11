@@ -1,6 +1,26 @@
 # Release Notes
 
 ---
+## 0.2.0
+
+This release extends the multi-provider support to include Anthropic (Claude) and Grok, and includes several important bug fixes related to the provider framework.
+
+### ✨ New Features
+
+*   **Anthropic (Claude) Support**: The tool now natively supports Claude models via the `anthropic` Python library.
+*   **Grok Support**: Added support for Grok models, which are accessed via Grok's OpenAI-compatible API endpoint.
+
+### 🐛 Bug Fixes
+
+*   **API Key Storage**: Fixed a critical bug that prevented API keys from being saved for providers with spaces or special characters in their names (like "Anthropic (Claude)"). The tool now correctly sanitizes names to create valid environment variable keys (e.g., `ANTHROPIC_CLAUDE_API_KEY`).
+*   **Claude Model Listing**: The Claude provider now attempts to dynamically list models from the API. It also includes a more comprehensive hardcoded list as a fallback, resolving an issue where only a few models were shown.
+
+### 🛠️ Internal Improvements
+
+*   **Grok via OpenAI SDK**: Refactored the implementation to reuse the `OpenAIProvider` for Grok by specifying a custom API `base_url`, simplifying the codebase.
+*   **Dependency Management**: Added `anthropic` to dependencies and removed the incorrect `grok-api` package.
+
+---
 ## 0.1.0
 
 This is a major feature release that introduces support for multiple AI providers and significantly enhances configuration flexibility.
